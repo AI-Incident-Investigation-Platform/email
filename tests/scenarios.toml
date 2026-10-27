@@ -1,0 +1,89 @@
+[[scenario]]
+id = "ARCH-IMPORTS-001"
+title = "core не импортирует api и worker, кроме DI-провайдеров"
+layer = "unit"
+domain = "architecture"
+
+[[scenario]]
+id = "ARCH-IMPORTS-002"
+title = "API-домены не импортируют друг друга"
+layer = "unit"
+domain = "architecture"
+
+[[scenario]]
+id = "ARCH-IMPORTS-003"
+title = "worker и api не импортируют друг друга"
+layer = "unit"
+domain = "architecture"
+
+[[scenario]]
+id = "ARCH-IMPORTS-004"
+title = "В src только абсолютные импорты"
+layer = "unit"
+domain = "architecture"
+
+[[scenario]]
+id = "CONFIG-001"
+title = "Без обязательных настроек сервис не стартует"
+layer = "unit"
+domain = "config"
+
+[[scenario]]
+id = "LETTERS-RENDER-001"
+title = "Письмо с кодом собирается из шаблона: код в теме и теле, срок в минутах, в HTML значения экранированы"
+layer = "unit"
+domain = "letters"
+
+[[scenario]]
+id = "LETTERS-RENDER-002"
+title = "Нет шаблона для языка или не хватает параметра — постоянная ошибка, а не повтор"
+layer = "unit"
+domain = "letters"
+
+[[scenario]]
+id = "LETTERS-001"
+title = "Устаревшая задача не отправляется"
+layer = "unit"
+domain = "letters"
+
+[[scenario]]
+id = "LETTERS-CONSUMER-001"
+title = "Исход задачи: отправлено — ack; временный отказ — повтор с номером попытки и ack; исчерпаны попытки, отказ провайдера или битое тело — dead-letter; устарела — ack"
+layer = "unit"
+domain = "letters"
+
+[[scenario]]
+id = "LETTERS-CONSUMER-002"
+title = "Код из параметров письма не попадает в логи"
+layer = "unit"
+domain = "letters"
+
+[[scenario]]
+id = "RESEND-001"
+title = "Письмо уходит в Resend с ключом идемпотентности и адресом отправителя, ответ — id провайдера"
+layer = "unit"
+domain = "resend"
+
+[[scenario]]
+id = "RESEND-002"
+title = "429 и 5xx — временный отказ, 4xx — постоянный"
+layer = "unit"
+domain = "resend"
+
+[[scenario]]
+id = "RESEND-003"
+title = "Таймаут провайдера — временная ошибка таймаута"
+layer = "unit"
+domain = "resend"
+
+[[scenario]]
+id = "LETTERS-FLOW-001"
+title = "Задача из exchange email доходит до провайдера и подтверждается"
+layer = "integration"
+domain = "letters"
+
+[[scenario]]
+id = "LETTERS-FLOW-002"
+title = "Временные отказы провайдера повторяются через retry-очередь, после лимита задача в email.transactional.dead"
+layer = "integration"
+domain = "letters"

@@ -1,0 +1,20 @@
+[service]
+port = 8002
+
+[letters]
+prefetch = 8
+max_attempts = 5
+retry_delay_seconds = 10
+
+[resend]
+api_key = "re_change-me"
+from_address = "AIIP <onboarding@resend.dev>"
+
+[logging]
+level = "INFO"
+
+[rabbitmq]
+url = "amqp://email:change-me@rabbitmq.infra:5672/aiip"
+
+[tracing]
+otlp_endpoint = "http://alloy.infra:4318"
