@@ -28,7 +28,7 @@ class RabbitmqConnection:
                 )
             except (AMQPError, OSError, TimeoutError) as exc:
                 log.warning(
-                    "rabbitmq.connect_failed",
+                    "Не удалось подключиться к RabbitMQ, повторю",
                     extra={"error": {"type": type(exc).__name__}},
                 )
                 await asyncio.sleep(cfg.rabbitmq.reconnect_delay_seconds)

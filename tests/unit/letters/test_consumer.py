@@ -139,4 +139,4 @@ async def test_code_never_reaches_logs(consumer_for: Any, caplog: pytest.LogCapt
 
     logged = " ".join(f"{record.getMessage()} {record.__dict__}" for record in caplog.records)
     assert "004271" not in logged
-    assert any(record.message == "letters.sent" for record in caplog.records)
+    assert any(record.message == "Письмо отправлено" for record in caplog.records)

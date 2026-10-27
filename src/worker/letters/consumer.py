@@ -48,7 +48,7 @@ class LettersConsumer:
         await channel.set_qos(prefetch_count=cfg.letters.prefetch)
         queue = await self._declare_topology(channel)
         await queue.consume(self.handle)
-        log.info("letters.consumer_started", extra={"queue": cfg.letters.transactional_queue})
+        log.info("Начат приём задач на письма", extra={"queue": cfg.letters.transactional_queue})
 
     async def handle(self, message: AbstractIncomingMessage) -> None:
         attempt = int(str((message.headers or {}).get(ATTEMPT_HEADER, 1)))
@@ -68,7 +68,12 @@ class LettersConsumer:
             task = LetterTask.model_validate_json(message.body)
         except ValidationError:
             await message.reject(requeue=False)
-            self._record(LetterOutcome.DEAD, attempt, message.message_id, event="letters.malformed")
+            self._record(
+                LetterOutcome.DEAD,
+                attempt,
+                message.message_id,
+                event="Битая задача на письмо отправлена в dead-letter",
+            )
             return
 
         letter = Letter(
@@ -101,7 +106,7 @@ class LettersConsumer:
             await message.ack()
             LETTERS.labels(letter.template.value, LetterOutcome.SENT.value).inc()
             log.info(
-                "letters.sent",
+                "Письмо отправлено",
                 extra={
                     "letter": {
                         "message_id": letter.message_id,
@@ -155,10 +160,22 @@ class LettersConsumer:
         level = logging.ERROR if outcome == LetterOutcome.DEAD else logging.WARNING
         log.log(
             level,
-            event or f"letters.{outcome.value}",
+            event or LettersConsumer._describe(outcome),
             exc_info=exc if level >= logging.ERROR and not isinstance(exc, AppError) else None,
             extra=fields,
         )
+
+    @staticmethod
+    def _describe(outcome: LetterOutcome) -> str:
+        match outcome:
+            case LetterOutcome.RETRIED:
+                return "Провайдер временно не принял письмо, задача отложена на повтор"
+            case LetterOutcome.DEAD:
+                return "Письмо не отправлено, задача отправлена в dead-letter"
+            case LetterOutcome.EXPIRED:
+                return "Срок письма истёк, задача отброшена без отправки"
+            case LetterOutcome.SENT:
+                return "Письмо отправлено"
 
     async def _declare_topology(self, channel: AbstractChannel) -> aio_pika.abc.AbstractQueue:
         letters = cfg.letters
