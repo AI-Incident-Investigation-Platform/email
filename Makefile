@@ -21,10 +21,10 @@ help:
 	@echo ""
 	@echo "  Kubernetes (кластер k3d aiip, namespace apps)"
 	@echo "    up                        собрать образ, загрузить в кластер, обновить секрет и выкатить"
-	@echo "                              RollingUpdate без простоя; если новые поды не стали готовы —"
-	@echo "                              откат. Число подов ведёт KEDA по длине очереди писем"
-	@echo "    down                      удалить Deployment и ScaledObject, секрет остаётся"
-	@echo "    ps                        поды, их нагрузка и решение автоскейлера"
+	@echo "                              Recreate: старый под останавливается до старта нового; если"
+	@echo "                              новый не стал готов — откат"
+	@echo "    down                      удалить Deployment, секрет остаётся"
+	@echo "    ps                        под и его нагрузка"
 	@echo "    logs                      логи всех подов"
 	@echo "    build                     собрать образ и загрузить в кластер"
 	@echo ""
@@ -57,8 +57,6 @@ down:
 	$(KUBECTL) delete -k k8s --ignore-not-found
 
 ps:
-	@$(KUBECTL) get scaledobject email 2>/dev/null || true
-	@echo
 	@$(KUBECTL) top pods -l app=email 2>/dev/null || true
 	@echo
 	@$(KUBECTL) get pods -l app=email -o wide

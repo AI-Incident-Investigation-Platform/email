@@ -3,4 +3,3 @@ kind: Kustomization
 namespace: apps
 resources:
   - email.yaml
-  - scaledobject.yaml
