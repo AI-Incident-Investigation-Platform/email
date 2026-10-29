@@ -9,6 +9,9 @@ retry_delay_seconds = 10
 [resend]
 api_key = "re_change-me"
 from_address = "AIIP <onboarding@resend.dev>"
+requests_per_second = 10
+daily_quota = 100
+monthly_quota = 3000
 
 [logging]
 level = "INFO"

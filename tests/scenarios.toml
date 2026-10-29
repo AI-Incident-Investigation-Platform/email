@@ -47,6 +47,12 @@ layer = "unit"
 domain = "letters"
 
 [[scenario]]
+id = "LETTERS-002"
+title = "Более новое письмо с тем же collapse_key снимает старое, пока то ждёт отправки"
+layer = "unit"
+domain = "letters"
+
+[[scenario]]
 id = "LETTERS-CONSUMER-001"
 title = "Исход задачи: отправлено — ack; временный отказ — повтор с номером попытки и ack; исчерпаны попытки, отказ провайдера или битое тело — dead-letter; устарела — ack"
 layer = "unit"
@@ -59,6 +65,12 @@ layer = "unit"
 domain = "letters"
 
 [[scenario]]
+id = "LETTERS-CONSUMER-003"
+title = "Исчерпанная квота провайдера откладывает задачу в retry-очередь без траты попытки"
+layer = "unit"
+domain = "letters"
+
+[[scenario]]
 id = "RESEND-001"
 title = "Письмо уходит в Resend с ключом идемпотентности и адресом отправителя, ответ — id провайдера"
 layer = "unit"
@@ -66,13 +78,37 @@ domain = "resend"
 
 [[scenario]]
 id = "RESEND-002"
-title = "429 и 5xx — временный отказ, 4xx — постоянный"
+title = "429 по частоте — ограничение частоты, 5xx — временный отказ, 4xx — постоянный"
 layer = "unit"
 domain = "resend"
 
 [[scenario]]
 id = "RESEND-003"
 title = "Таймаут провайдера — временная ошибка таймаута"
+layer = "unit"
+domain = "resend"
+
+[[scenario]]
+id = "RESEND-QUOTA-001"
+title = "Суточная квота из GET /usage исчерпана — письмо не уходит к провайдеру"
+layer = "unit"
+domain = "resend"
+
+[[scenario]]
+id = "RESEND-QUOTA-002"
+title = "Квота из конфига ниже провайдерской — соблюдается меньшая"
+layer = "unit"
+domain = "resend"
+
+[[scenario]]
+id = "RESEND-QUOTA-003"
+title = "Отказ 429 по суточной или месячной квоте останавливает следующие запросы до сброса"
+layer = "unit"
+domain = "resend"
+
+[[scenario]]
+id = "RESEND-QUOTA-004"
+title = "Запросы к провайдеру идут не чаще requests_per_second"
 layer = "unit"
 domain = "resend"
 

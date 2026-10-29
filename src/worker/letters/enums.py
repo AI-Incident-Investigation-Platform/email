@@ -10,3 +10,5 @@ class LetterOutcome(StrEnum):
     RETRIED = "retried"
     DEAD = "dead"
     EXPIRED = "expired"
+    DEFERRED = "deferred"
+    SUPERSEDED = "superseded"

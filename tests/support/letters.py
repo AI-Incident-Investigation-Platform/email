@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from src.core.resend.client import ResendClient
+from src.core.resend.quota import ResendQuota
 from src.core.resend.service import ResendService
 
 
@@ -23,20 +24,40 @@ def letter_body(**overrides: object) -> dict[str, Any]:
     return body
 
 
+def usage_body(daily_used: int = 0, daily_limit: int = 100) -> dict[str, Any]:
+    resets_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
+    return {
+        "object": "usage",
+        "emails": {
+            "daily": {"used": daily_used, "limit": daily_limit, "resets_at": resets_at},
+            "monthly": {"used": daily_used, "limit": 3000, "resets_at": resets_at},
+        },
+    }
+
+
 @dataclass
 class FakeResend:
-    """Подменяет HTTP-транспорт к Resend: отвечает по очереди заданными статусами."""
+    """Подменяет HTTP-транспорт к Resend: на письма отвечает по очереди заданными статусами.
+
+    Статус 429 приходит с именем ошибки `error_name`, `GET /usage` отвечает `usage`.
+    """
 
     statuses: list[int] = field(default_factory=lambda: [200])
+    error_name: str = "test_error"
+    usage: dict[str, Any] = field(default_factory=usage_body)
     requests: list[httpx.Request] = field(default_factory=list)
+    usage_requests: list[httpx.Request] = field(default_factory=list)
 
     def handler(self) -> Callable[[httpx.Request], httpx.Response]:
         def respond(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/usage":
+                self.usage_requests.append(request)
+                return httpx.Response(200, json=self.usage)
             self.requests.append(request)
             status = self.statuses.pop(0) if len(self.statuses) > 1 else self.statuses[0]
             if status == 200:
                 return httpx.Response(200, json={"id": f"re_{len(self.requests)}"})
-            return httpx.Response(status, json={"name": "test_error", "message": "x"})
+            return httpx.Response(status, json={"name": self.error_name, "message": "x"})
 
         return respond
 
@@ -47,4 +68,4 @@ class FakeResend:
         http = httpx.AsyncClient(
             base_url="https://api.resend.test", transport=httpx.MockTransport(self.handler())
         )
-        return ResendService(ResendClient(http))
+        return ResendService(ResendClient(http), ResendQuota())

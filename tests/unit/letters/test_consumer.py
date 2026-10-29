@@ -16,6 +16,7 @@ from src.worker.exc.letters import LetterExpiredError
 from src.worker.letters.consumer import ATTEMPT_HEADER, LettersConsumer
 from src.worker.letters.dto import Letter
 from src.worker.letters.enums import LetterTemplate
+from src.worker.letters.latest import LatestLetters
 from src.worker.letters.service import LettersService
 from tests.support.letters import FakeResend, letter_body
 
@@ -54,6 +55,7 @@ async def consumer_for() -> AsyncIterator[Any]:
     def build(resend: FakeResend) -> tuple[LettersConsumer, StubExchange]:
         class TestProvider(Provider):
             letters = provide(LettersService, scope=Scope.REQUEST)
+            latest = provide(LatestLetters, scope=Scope.APP)
 
             @provide(scope=Scope.APP)
             def get_resend(self) -> ResendService:
@@ -88,7 +90,7 @@ async def test_expired_letter_is_not_sent() -> None:
     )
 
     with pytest.raises(LetterExpiredError):
-        await LettersService(resend.service()).deliver(letter)
+        await LettersService(resend.service(), LatestLetters()).deliver(letter)
     assert resend.requests == []
 
 
@@ -140,3 +142,42 @@ async def test_code_never_reaches_logs(consumer_for: Any, caplog: pytest.LogCapt
     logged = " ".join(f"{record.getMessage()} {record.__dict__}" for record in caplog.records)
     assert "004271" not in logged
     assert any(record.message == "Письмо отправлено" for record in caplog.records)
+
+
+@pytest.mark.case(id="LETTERS-CONSUMER-003")
+async def test_exhausted_quota_defers_letter_without_spending_attempt(consumer_for: Any) -> None:
+    consumer, retry = consumer_for(FakeResend(statuses=[429], error_name="daily_quota_exceeded"))
+    first = StubMessage(json.dumps(letter_body()).encode(), headers={ATTEMPT_HEADER: 3})
+    await handle(consumer, first)
+    second = StubMessage(json.dumps(letter_body()).encode(), headers={ATTEMPT_HEADER: 3})
+    await handle(consumer, second)
+
+    assert first.acked and second.acked
+    assert not first.rejected and not second.rejected
+    assert [message.headers[ATTEMPT_HEADER] for message, _ in retry.published] == [3, 3]
+
+
+@pytest.mark.case(id="LETTERS-002")
+async def test_newer_letter_with_same_collapse_key_supersedes_older(consumer_for: Any) -> None:
+    resend = FakeResend(statuses=[429, 200], error_name="rate_limit_exceeded")
+    consumer, retry = consumer_for(resend)
+    now = datetime.now(UTC)
+
+    def task(message_id: str, created_at: datetime) -> StubMessage:
+        body = letter_body(
+            message_id=message_id,
+            collapse_key="auth.login_code:user@example.com",
+            created_at=created_at.isoformat(),
+        )
+        return StubMessage(json.dumps(body).encode(), message_id=message_id)
+
+    old = task("old", now - timedelta(minutes=3))
+    await handle(consumer, old)
+    new = task("new", now)
+    await handle(consumer, new)
+    old_again = task("old", now - timedelta(minutes=3))
+    await handle(consumer, old_again)
+
+    assert [message.message_id for message, _ in retry.published] == ["old"]
+    assert new.acked and old_again.acked
+    assert [request.headers["idempotency-key"] for request in resend.requests] == ["old", "new"]

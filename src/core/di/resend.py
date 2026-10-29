@@ -5,11 +5,13 @@ from dishka import Provider, Scope, provide
 
 from src.config import cfg
 from src.core.resend.client import ResendClient
+from src.core.resend.quota import ResendQuota
 from src.core.resend.service import ResendService
 
 
 class ResendProvider(Provider):
     resend_client = provide(ResendClient, scope=Scope.APP)
+    resend_quota = provide(ResendQuota, scope=Scope.APP)
     resend_service = provide(ResendService, scope=Scope.APP)
 
     @provide(scope=Scope.APP)

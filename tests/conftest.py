@@ -22,6 +22,7 @@ os.environ.update(
         "RESEND__API_KEY": "re_test_only",
         "RESEND__BASE_URL": "http://127.0.0.1:1",
         "RESEND__FROM_ADDRESS": "AIIP <no-reply@example.com>",
+        "RESEND__REQUESTS_PER_SECOND": "1000",
         "LETTERS__RETRY_DELAY_SECONDS": "1",
         "TRACING__ENABLED": "false",
     }

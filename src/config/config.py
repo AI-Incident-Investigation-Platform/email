@@ -47,6 +47,11 @@ class Resend(BaseModel):
     base_url: str = "https://api.resend.com"
     timeout_seconds: float = Field(default=10, gt=0)
     from_address: str = ""
+    # квоты аккаунта Resend; воркер не превышает ни свои, ни лимиты из ответа провайдера
+    requests_per_second: float = Field(default=10, gt=0)
+    daily_quota: int = Field(default=100, ge=1)
+    monthly_quota: int = Field(default=3000, ge=1)
+    usage_refresh_seconds: float = Field(default=60, gt=0)
 
 
 class Tracing(BaseModel):

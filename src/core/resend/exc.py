@@ -3,7 +3,7 @@ from src.core.errors import CoreError, IntegrationTimeoutError, IntegrationUnava
 
 class ResendUnavailableError(IntegrationUnavailableError):
     code = "resend.unavailable"
-    message = "Почтовый провайдер недоступен или ограничил отправку"
+    message = "Почтовый провайдер недоступен"
 
 
 class ResendTimeoutError(IntegrationTimeoutError):
@@ -14,3 +14,13 @@ class ResendTimeoutError(IntegrationTimeoutError):
 class ResendRejectedError(CoreError):
     code = "resend.rejected"
     message = "Почтовый провайдер отклонил письмо"
+
+
+class ResendRateLimitedError(CoreError):
+    code = "resend.rate_limited"
+    message = "Почтовый провайдер ограничил частоту запросов"
+
+
+class ResendQuotaExhaustedError(CoreError):
+    code = "resend.quota_exhausted"
+    message = "Квота писем почтового провайдера исчерпана"

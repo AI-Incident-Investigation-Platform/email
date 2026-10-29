@@ -16,7 +16,7 @@ from src.core.errors import (
     IntegrationUnavailableError,
 )
 from src.core.rabbitmq.connection import RabbitmqConnection
-from src.worker.exc.letters import LetterExpiredError
+from src.worker.exc.letters import LetterDeferredError, LetterExpiredError, LetterSupersededError
 from src.worker.letters.dto import Letter
 from src.worker.letters.enums import LetterOutcome
 from src.worker.letters.metrics import DELIVERY_DURATION, LETTERS
@@ -32,8 +32,9 @@ class LettersConsumer:
     """Принимает задачи из `email.transactional` и решает их судьбу по исходу доставки.
 
     Временный отказ провайдера — копия задачи в retry-очередь с задержкой и ack
-    оригинала, пока не исчерпан лимит попыток; битая задача, отказ провайдера и
-    исчерпанные попытки — dead-letter; устаревшая задача — ack без отправки.
+    оригинала, пока не исчерпан лимит попыток; квота или частота провайдера — та же
+    копия без траты попытки; битая задача, отказ провайдера и исчерпанные попытки —
+    dead-letter; устаревшая или вытесненная задача — ack без отправки.
     """
 
     def __init__(self, container: AsyncContainer, connection: RabbitmqConnection) -> None:
@@ -83,6 +84,8 @@ class LettersConsumer:
             locale=task.locale,
             params=task.params,
             expires_at=task.expires_at,
+            collapse_key=task.collapse_key,
+            created_at=task.created_at,
         )
         try:
             async with self._container() as request:
@@ -91,6 +94,13 @@ class LettersConsumer:
         except LetterExpiredError as exc:
             await message.ack()
             self._record(LetterOutcome.EXPIRED, attempt, letter.message_id, letter, exc)
+        except LetterSupersededError as exc:
+            await message.ack()
+            self._record(LetterOutcome.SUPERSEDED, attempt, letter.message_id, letter, exc)
+        except LetterDeferredError as exc:
+            await self._retry(message, letter, attempt)
+            await message.ack()
+            self._record(LetterOutcome.DEFERRED, attempt, letter.message_id, letter, exc)
         except (IntegrationUnavailableError, IntegrationTimeoutError) as exc:
             if attempt < cfg.letters.max_attempts:
                 await self._retry(message, letter, attempt + 1)
@@ -174,6 +184,12 @@ class LettersConsumer:
                 return "Письмо не отправлено, задача отправлена в dead-letter"
             case LetterOutcome.EXPIRED:
                 return "Срок письма истёк, задача отброшена без отправки"
+            case LetterOutcome.DEFERRED:
+                return (
+                    "Квота провайдера не позволяет отправить письмо, задача ждёт без траты попытки"
+                )
+            case LetterOutcome.SUPERSEDED:
+                return "Есть более новое письмо с тем же ключом, задача отброшена без отправки"
             case LetterOutcome.SENT:
                 return "Письмо отправлено"
 

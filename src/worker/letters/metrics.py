@@ -2,7 +2,7 @@ from prometheus_client import Counter, Histogram
 
 LETTERS = Counter(
     "email_letters_total",
-    "Задачи на письма по шаблону и исходу: sent, retried, dead, expired",
+    "Задачи на письма по шаблону и исходу: sent, retried, deferred, dead, expired, superseded",
     ["template", "outcome"],
 )
 DELIVERY_DURATION = Histogram(

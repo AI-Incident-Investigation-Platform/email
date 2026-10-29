@@ -12,6 +12,7 @@ from src.core.di import RabbitmqProvider
 from src.core.rabbitmq.connection import RabbitmqConnection
 from src.core.resend.service import ResendService
 from src.worker.letters.consumer import LettersConsumer
+from src.worker.letters.latest import LatestLetters
 from src.worker.letters.service import LettersService
 from tests.support.letters import FakeResend, letter_body
 
@@ -30,6 +31,7 @@ async def start_worker() -> AsyncIterator[Callable[[FakeResend], Awaitable[None]
     async def start(resend: FakeResend) -> None:
         class TestResendProvider(Provider):
             letters = provide(LettersService, scope=Scope.REQUEST)
+            latest = provide(LatestLetters, scope=Scope.APP)
 
             @provide(scope=Scope.APP)
             def get_resend(self) -> ResendService:

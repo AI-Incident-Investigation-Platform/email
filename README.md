@@ -6,8 +6,8 @@
 задачу (сейчас — `auth`, код входа).
 
 Публичного API нет: из HTTP только `/health`, `/ready` и `/metrics`, без
-Ingress. Работает в namespace `apps` кластера `aiip`; число подов (1–3)
-ведёт KEDA по длине очереди `email.transactional`.
+Ingress. Работает в namespace `apps` кластера `aiip` одним подом: скорость
+отправки ограничивает квота провайдера, а не под.
 
 ## Документация
 
@@ -31,19 +31,21 @@ prometheus-client.
 ```bash
 make config          # первый раз: config.toml из примера и выдачи инфры
                      # затем впиши resend.api_key и resend.from_address
-make up              # образ → кластер, секрет, RollingUpdate с откатом
-make ps              # поды и решение автоскейлера
+make up              # образ → кластер, секрет, Recreate с откатом
+make ps              # под и его нагрузка
 make logs
-make down            # убрать Deployment и ScaledObject; секрет остаётся
+make down            # убрать Deployment; секрет остаётся
 ```
 
 На хосте: `make -C ../infra forward` в соседнем терминале, затем
 `make run`.
 
 Без подтверждённого домена Resend отправляет письма только на почту
-владельца аккаунта Resend с адреса `onboarding@resend.dev`. Дневной лимит
-бесплатного тарифа приходит ответом 429 и обрабатывается как временный
-отказ: задача повторяется, пока не истечёт её срок или попытки.
+владельца аккаунта Resend с адреса `onboarding@resend.dev`. Воркер
+соблюдает квоты Resend (`resend.requests_per_second`, `daily_quota`,
+`monthly_quota`) для всех писем: сверх квоты письмо ждёт в очереди, пока
+не истечёт его срок. Подробности — «Квоты провайдера» в
+[docs/design.md](docs/design.md).
 
 ## Проверка
 

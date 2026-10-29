@@ -15,7 +15,9 @@ JSON:
   "to": "user@example.com",
   "locale": "ru",
   "params": {"code": "004271", "expires_in": 300},
-  "expires_at": "2026-10-27T12:05:00Z"
+  "created_at": "2026-10-27T12:00:00Z",
+  "expires_at": "2026-10-27T12:05:00Z",
+  "collapse_key": "auth.login_code:user@example.com"
 }
 ```
 
@@ -27,6 +29,8 @@ JSON:
 | `locale` | язык шаблона, двухбуквенный |
 | `params` | подстановки шаблона; в логи не пишутся |
 | `expires_at` | после этого момента письмо не отправляется |
+| `created_at` | когда отправитель поставил задачу; нужен вместе с `collapse_key` |
+| `collapse_key` | необязательный ключ вытеснения: из ждущих писем с одним ключом уходит только самое новое по `created_at`. Не логируется |
 
 Свойства AMQP: `message_id`, `content_type: application/json`, persistent,
 `expiration` — оставшийся срок, `traceparent` в заголовках. Заголовок
@@ -41,7 +45,7 @@ JSON:
 | Очередь | Что в ней |
 |---|---|
 | `email.transactional` | срочные письма; quorum, dead-letter в `email.dead` |
-| `email.transactional.retry` | повтор после временного отказа; живёт `letters.retry_delay_seconds` и возвращается в `email` |
+| `email.transactional.retry` | повтор после временного отказа и ожидание квоты провайдера; живёт `letters.retry_delay_seconds` и возвращается в `email` |
 | `email.transactional.dead` | битые, отклонённые провайдером и исчерпавшие попытки задачи; хранятся `letters.dead_letter_ttl_days` |
 
 Топологию объявляет воркер при старте; отправитель объявляет только
@@ -53,4 +57,4 @@ exchange `email`.
 |---|---|---|
 | `GET /health` | kubelet: liveness, startup | `200 {status: "ok"}`, зависимостей не проверяет |
 | `GET /ready` | kubelet: readiness | `200`, если соединение с RabbitMQ живо; иначе `503` `rabbitmq.unavailable` |
-| `GET /metrics` | Alloy | `email_letters_total{template, outcome}`, `email_delivery_duration_seconds`, метрики процесса |
+| `GET /metrics` | Alloy | `email_letters_total{template, outcome}`, `email_delivery_duration_seconds`, `email_resend_quota_used{period}` и `email_resend_quota_limit{period}` (`daily`, `monthly`), метрики процесса |

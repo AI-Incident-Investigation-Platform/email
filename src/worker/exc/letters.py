@@ -1,9 +1,19 @@
-from src.core.errors import GoneError, RuleViolationError
+from src.core.errors import GoneError, OverloadedError, RuleViolationError
 
 
 class LetterExpiredError(GoneError):
     code = "letters.expired"
     message = "Срок письма истёк до отправки"
+
+
+class LetterSupersededError(GoneError):
+    code = "letters.superseded"
+    message = "Письмо заменено более новым с тем же ключом вытеснения"
+
+
+class LetterDeferredError(OverloadedError):
+    code = "letters.deferred"
+    message = "Квота или частота провайдера не позволяют отправить письмо сейчас"
 
 
 class TemplateNotFoundError(RuleViolationError):
