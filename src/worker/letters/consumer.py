@@ -49,7 +49,10 @@ class LettersConsumer:
         await channel.set_qos(prefetch_count=cfg.letters.prefetch)
         queue = await self._declare_topology(channel)
         await queue.consume(self.handle)
-        log.info("Начат приём задач на письма", extra={"queue": cfg.letters.transactional_queue})
+        log.info(
+            "Начат приём задач на письма",
+            extra={"event": "letter.consuming_started", "queue": cfg.letters.transactional_queue},
+        )
 
     async def handle(self, message: AbstractIncomingMessage) -> None:
         attempt = int(str((message.headers or {}).get(ATTEMPT_HEADER, 1)))
@@ -73,7 +76,8 @@ class LettersConsumer:
                 LetterOutcome.DEAD,
                 attempt,
                 message.message_id,
-                event="Битая задача на письмо отправлена в dead-letter",
+                event="letter.malformed",
+                message="Битая задача на письмо отправлена в dead-letter",
             )
             return
 
@@ -118,12 +122,13 @@ class LettersConsumer:
             log.info(
                 "Письмо отправлено",
                 extra={
+                    "event": "letter.sent",
                     "letter": {
                         "message_id": letter.message_id,
                         "template": letter.template.value,
                         "provider_id": provider_id,
                         "attempt": attempt,
-                    }
+                    },
                 },
             )
         finally:
@@ -154,23 +159,25 @@ class LettersConsumer:
         letter: Letter | None = None,
         exc: Exception | None = None,
         event: str | None = None,
+        message: str | None = None,
     ) -> None:
         template = letter.template.value if letter else "unknown"
         LETTERS.labels(template, outcome.value).inc()
         fields: dict[str, object] = {
+            "event": event or f"letter.{outcome.value}",
             "letter": {
                 "message_id": message_id,
                 "template": template,
                 "attempt": attempt,
                 "outcome": outcome.value,
-            }
+            },
         }
         if exc is not None:
             fields["error"] = ErrorReport.from_exception(exc).to_log()
         level = logging.ERROR if outcome == LetterOutcome.DEAD else logging.WARNING
         log.log(
             level,
-            event or LettersConsumer._describe(outcome),
+            message or LettersConsumer._describe(outcome),
             exc_info=exc if level >= logging.ERROR and not isinstance(exc, AppError) else None,
             extra=fields,
         )

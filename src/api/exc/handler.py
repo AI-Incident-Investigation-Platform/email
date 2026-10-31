@@ -32,7 +32,11 @@ class ApiErrorHandler:
         log.log(
             level,
             "Служебный запрос завершился ошибкой",
-            extra={"error": ErrorReport.from_exception(exc).to_log(), "path": request.url.path},
+            extra={
+                "event": "http.error",
+                "error": ErrorReport.from_exception(exc).to_log(),
+                "path": request.url.path,
+            },
         )
         return JSONResponse(
             status_code=status.value,

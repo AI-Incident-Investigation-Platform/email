@@ -62,7 +62,7 @@ ps:
 	@$(KUBECTL) get pods -l app=email -o wide
 
 build:
-	$(BUILD) docker build -q -t $(IMAGE) . >/dev/null
+	$(BUILD) docker build -q --build-arg SERVICE_VERSION=$(lastword $(subst :, ,$(IMAGE))) -t $(IMAGE) . >/dev/null
 	k3d image import $(IMAGE) -c $(CLUSTER)
 
 secret:

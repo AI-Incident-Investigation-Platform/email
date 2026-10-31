@@ -94,19 +94,28 @@ class ResendService:
         except (ResendUnavailableError, ResendTimeoutError) as exc:
             log.warning(
                 "Не удалось сверить расход квот с провайдером",
-                extra={"error": ErrorReport.from_exception(exc).to_log()},
+                extra={
+                    "event": "resend.usage_request_failed",
+                    "error": ErrorReport.from_exception(exc).to_log(),
+                },
             )
             return
         if response.status_code != HTTPStatus.OK:
             log.warning(
                 "Провайдер не отдал расход квот",
-                extra={"resend": {"status": response.status_code}},
+                extra={
+                    "event": "resend.usage_rejected",
+                    "resend": {"status": response.status_code},
+                },
             )
             return
         try:
             usage = UsageResponse.model_validate_json(response.content).emails
         except ValidationError:
-            log.warning("Провайдер вернул расход квот в неизвестном формате")
+            log.warning(
+                "Провайдер вернул расход квот в неизвестном формате",
+                extra={"event": "resend.usage_malformed"},
+            )
             return
         if usage.daily is not None:
             daily = usage.daily

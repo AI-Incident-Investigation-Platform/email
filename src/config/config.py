@@ -19,6 +19,8 @@ PATHS_SOURCES: list[tuple[Path, type[PydanticBaseSettingsSource]]] = [
 
 class Service(BaseModel):
     name: str = "email"
+    # тег образа, его подставляет сборка; на хосте — dev
+    version: str = "dev"
     port: int = 8002
     bind_host: str = "127.0.0.1"
 

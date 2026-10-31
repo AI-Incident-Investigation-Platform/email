@@ -35,18 +35,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging(cfg.logging.level)
     if missing := cfg.missing_required():
         log.critical(
-            "Не заданы обязательные настройки сервиса", extra={"missing_settings": missing}
+            "Не заданы обязательные настройки сервиса",
+            extra={"event": "service.config_incomplete", "missing_settings": missing},
         )
         raise ConfigIncompleteError({"missing_settings": missing})
     try:
         await LettersConsumer(container, await container.get(RabbitmqConnection)).start()
-        log.info("Сервис готов принимать задачи")
+        log.info("Сервис готов принимать задачи", extra={"event": "service.started"})
         yield
     finally:
-        log.info("Сервис останавливается")
+        log.info("Сервис останавливается", extra={"event": "service.stopping"})
         await container.close()
         shutdown_tracing()
-        log.info("Сервис остановлен")
+        log.info("Сервис остановлен", extra={"event": "service.stopped"})
 
 
 app = FastAPI(title="AIIP email", lifespan=lifespan)
