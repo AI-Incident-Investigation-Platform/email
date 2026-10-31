@@ -1,0 +1,5 @@
+$inviter_name приглашает вас в проект «$project_name» в AIIP с ролью $role_name.
+
+Принять или отклонить приглашение: $accept_url
+
+Приглашение действует $expires_in_days дн.

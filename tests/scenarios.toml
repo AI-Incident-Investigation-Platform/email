@@ -41,6 +41,12 @@ layer = "unit"
 domain = "letters"
 
 [[scenario]]
+id = "LETTERS-RENDER-003"
+title = "Каждый шаблон письма собирается из своих параметров без пропущенных подстановок"
+layer = "unit"
+domain = "letters"
+
+[[scenario]]
 id = "LETTERS-001"
 title = "Устаревшая задача не отправляется"
 layer = "unit"

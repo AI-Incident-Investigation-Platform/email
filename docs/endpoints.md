@@ -38,7 +38,12 @@ JSON:
 
 | Шаблон | Кто ставит | `params` |
 |---|---|---|
-| `auth.login_code` | `auth`, вход и регистрация | `code` — 6 цифр, `expires_in` — секунды |
+| `auth.login_code` | `auth`, вход | `code` — 6 цифр, `expires_in` — секунды |
+| `auth.register_code` | `auth`, регистрация | `code`, `expires_in` |
+| `auth.email_change_current_code` | `auth`, смена почты — на текущую почту | `code`, `expires_in`, `new_email` — на какую почту меняют |
+| `auth.email_change_new_code` | `auth`, смена почты — на новую почту | `code`, `expires_in` |
+| `auth.email_changed` | `auth`, почта сменена — на старую почту | `new_email` |
+| `projects.invitation` | `projects`, приглашение в проект | `inviter_name`, `project_name`, `role_name`, `accept_url`, `expires_in_days` |
 
 ## Очереди
 
